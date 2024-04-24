@@ -1,18 +1,16 @@
 name: Build Padavan4
 
 # Controls when the action will run. 
-on: 
-  release:
-    types: [published]
-  push:
-    tags:
-    - 'v*'
-  #  branches: 
-  #    - master
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'
 #  schedule:
-#    - cron: 0 8 * * 5
-  watch:
-    types: [started]
+#    - cron: 0 8 */5 * *
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
