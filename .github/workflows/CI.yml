@@ -59,23 +59,30 @@ jobs:
           image_name=images_${build_variant}_${GIT_VERSION} || image_name=images_${build_variant}
           cd ${images_dir}; md5sum *.trx |tee md5sum.txt; 7z a -mx=9 ${image_name}.7z ./*
           echo "image_name=${image_name}" >> $GITHUB_ENV
-      - name: Upload images to Artifact
-        if: ${{ github.event_name != 'release' && success() }}
-        uses: actions/upload-artifact@v2.2.1
-        with:
-          name: ${{ env.image_name }}
-          path: ${{ env.images_dir }}/*.7z
+#      - name: Upload images to Artifact
+#        if: ${{ github.event_name != 'release' && success() }}
+#        uses: actions/upload-artifact@v2.2.1
+#        with:
+#          name: ${{ env.image_name }}
+#          path: ${{ env.images_dir }}/*.7z
 #      - name: Upload firmware to WeTransfer
 #        run: |
 #          curl -fsSL git.io/file-transfer | sh
 #          ./transfer wet -s -p 16 --no-progress /opt/images/*.trx 2>&1 | tee wetransfer.log
 #          echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
-      - name: Upload images to Releases
-        if: ${{ github.event_name == 'release' && success() }}
-        uses: svenstaro/upload-release-action@2.2.0
+
+      - name: Generate release tag
+        id: tag
+        if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+        run: |
+          echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
+
+      - name: Upload firmware to release
+        uses: softprops/action-gh-release@v1
+        if: steps.tag.outputs.status == 'success' && !cancelled()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.images_dir }}/*.trx
-          tag: ${{ github.ref }}
-          overwrite: true
-          file_glob: true
+          tag_name: ${{ steps.tag.outputs.release_tag }}
+          body_path: release.txt
+          files: ${{ env.FIRMWARE }}/*
